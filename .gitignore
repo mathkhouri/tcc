@@ -1,0 +1,7 @@
+*.idea
+*.pc
+*.pyc
+*.pyo
+__pycache__
+.deps
+.libs

@@ -36,6 +36,9 @@ STATUS = {
     4: 'waiting pause',
 }
 
+UP_POSITION = -1.5
+DOWN_POSITION = -2.8
+
 
 def set_velocity(ur_motors):
     for motor in ur_motors:
@@ -58,6 +61,10 @@ def get_notes_duration(time_signature_duration, *notes) -> List[float]:
     :return: lista contendo todos os tempos, em segundos, que irão durar cada a nota a ser tocada
     """
     return [time_signature_duration * (TIME_SIGNATURE[1] / n) for n in notes]
+
+
+def calculate_velocity(total_duration):
+    return (2 * PI * ARM_LENGTH / 4) / (total_duration / 2)
 
 
 def init_robot():
@@ -104,49 +111,40 @@ def init_sensors(robot, timestep):
 
 def play_notes(robot, timestep, client, hand_motors, ur_motors, distance_sensor, touch_sensor, position_sensor):
     time_signature_duration = define_time_signature_duration()
-    notes = [(-2.3, -1.1, note) for note in get_notes_duration(time_signature_duration, *INITIAL_NOTES)]
+    notes = get_notes_duration(time_signature_duration, *INITIAL_NOTES)
     status = 0
     status_dict = STATUS.copy()
     notes_counter = 0
     # Move o braço para posição inicial - 90º
-    Motor.setPosition(ur_motors[0], -1.3)
+    Motor.setPosition(ur_motors[0], UP_POSITION)
     while robot.step(timestep) != -1:
         if status_dict.get(status) == "down command":
-            if PositionSensor.getValue(position_sensor) > -1.2:
+            if PositionSensor.getValue(position_sensor) > UP_POSITION + 0.1:
                 print(status_dict.get(status))
                 if notes_counter >= len(notes):
                     break
-                target_position, _, total_duration = notes[notes_counter]
-                speed = (2 * PI * ARM_LENGTH / 4) / (total_duration / 2)
-                print('Target position: ', target_position)
-                print('Speed: ', speed)
+                total_duration = notes[notes_counter]
+                speed = calculate_velocity(total_duration)
                 # for ur_motor, position in zip(ur_motors, target_position):
                 Motor.setVelocity(ur_motors[0], speed)
-                Motor.setPosition(ur_motors[0], target_position)
+                Motor.setPosition(ur_motors[0], DOWN_POSITION)
                 status = 1
 
         elif status_dict.get(status) == "going down":
-            print('PositionSensor: ', PositionSensor.getValue(position_sensor))
-            if PositionSensor.getValue(position_sensor) < -2.2:
+            if PositionSensor.getValue(position_sensor) < DOWN_POSITION + 0.1:
                 print(status_dict.get(status))
                 touch_value = TouchSensor.getValue(touch_sensor)
                 print("Detecting a collision of:", round(touch_value, 2), "N")
                 client.send_message("/controllers/robotic_arm", touch_value)
                 status = 2
 
-        #                Speaker.playSound(
-        #                    speaker, speaker,
-        #                    "sounds/bateria.wav", 1.0, 1.0, 0, True
-        #                )
-
         elif status_dict.get(status) == "up command":
             print(status_dict.get(status))
-            _, target_position, _ = notes[notes_counter]
-            Motor.setPosition(ur_motors[0], target_position)
+            Motor.setPosition(ur_motors[0], UP_POSITION + 0.2)
             status = 3
 
         elif status_dict.get(status) == "going up":
-            if PositionSensor.getValue(position_sensor) > -1.2:
+            if PositionSensor.getValue(position_sensor) > UP_POSITION + 0.1:
                 print(status_dict.get(status))
                 status = 0
                 notes_counter += 1

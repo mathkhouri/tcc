@@ -175,7 +175,7 @@ def calculate_linear_distance(initial_position, final_position, note_vs_distance
     :param float half_note_duration: metade do tempo total de duração da nota
     :return: distância linear a ser percorrida pelo braço, respeitando o tempo de duração da nota e a velocidade max
     """
-    return min((2 * PI * ARM_LENGTH * (abs(initial_position - final_position) / 6.28)) * note_vs_distance_factor,
+    return min((ARM_LENGTH * abs(initial_position - final_position)) * note_vs_distance_factor,
                MAX_VELOCITY * ARM_LENGTH * half_note_duration)
 
 

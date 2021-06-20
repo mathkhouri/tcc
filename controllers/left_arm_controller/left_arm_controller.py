@@ -14,7 +14,6 @@ from time import sleep
 
 IP = '127.0.0.1'
 PORT = 9000
-ARM_LENGTH = 0.5  # Em metros
 MAX_VELOCITY = 3.14  # Em rad/s
 PI = 3.14
 
@@ -157,10 +156,10 @@ def calculate_note_vs_distance_factor(note) -> float:
     return min((TIME_SIGNATURE[1] / note), 1.0)
 
 
-def calculate_linear_distance(initial_position, final_position, note_vs_distance_factor, half_note_duration) -> float:
-    """Calcula a distância linear necessária para que o movimento do braço respeite o tempo da nota e a velocidade max.
+def calculate_angular_distance(initial_position, final_position, note_vs_distance_factor, half_note_duration) -> float:
+    """Calcula a distância angular necessária para que o movimento do braço respeite o tempo da nota e a velocidade max.
 
-    Realia dois cálculos distintos para a distância linear:
+    Realia dois cálculos distintos para a distância angular:
         - Excursão máxima do braço multiplicada pela fator de correção nota X distância angular;
         - Setando a velocidade do motor a 3.14 rad/s;
 
@@ -173,20 +172,19 @@ def calculate_linear_distance(initial_position, final_position, note_vs_distance
     :param float final_position: posição final do braço
     :param float note_vs_distance_factor: fator de correção nota X distância angular
     :param float half_note_duration: metade do tempo total de duração da nota
-    :return: distância linear a ser percorrida pelo braço, respeitando o tempo de duração da nota e a velocidade max
+    :return: distância angular a ser percorrida pelo braço, respeitando o tempo de duração da nota e a velocidade max
     """
-    return min((ARM_LENGTH * abs(initial_position - final_position)) * note_vs_distance_factor,
-               MAX_VELOCITY * ARM_LENGTH * half_note_duration)
+    return min((abs(initial_position - final_position)) * note_vs_distance_factor, MAX_VELOCITY * half_note_duration)
 
 
-def calculate_angular_velocity(linear_distance, half_note_duration) -> float:
-    """Calcula a velocidade angular à partir do tempo de duração da nota e da distância linear informada.
+def calculate_angular_velocity(angular_distance, half_note_duration) -> float:
+    """Calcula a velocidade angular à partir do tempo de duração da nota e da distância angular informada.
 
-    :param float linear_distance: distância linear a ser percorrida pelo braço
+    :param float angular_distance: distância angular a ser percorrida pelo braço
     :param float half_note_duration: metade do tempo total de duração da nota
     :return: velocidade angular a ser setada no motor para que a nota seja tocada corretamente
     """
-    return (linear_distance / half_note_duration) / ARM_LENGTH
+    return angular_distance / half_note_duration
 
 
 def get_angular_velocity(total_note_duration, note, sensor_position) -> tuple:
@@ -198,10 +196,10 @@ def get_angular_velocity(total_note_duration, note, sensor_position) -> tuple:
     :return: velocidade e posição angulares do motor para a nota recebida
     """
     note_vs_distance_factor = calculate_note_vs_distance_factor(note)
-    linear_distance = calculate_linear_distance(sensor_position, UP_POSITION, note_vs_distance_factor,
-                                                total_note_duration / 2)
-    speed = calculate_angular_velocity(linear_distance, total_note_duration / 2)
-    up_position = -1 * (linear_distance / ARM_LENGTH)
+    angular_distance = calculate_angular_distance(sensor_position, UP_POSITION, note_vs_distance_factor,
+                                                  total_note_duration / 2)
+    speed = calculate_angular_velocity(angular_distance, total_note_duration / 2)
+    up_position = -1 * angular_distance
     return speed, up_position
 
 
@@ -230,10 +228,10 @@ def init_motors(robot):
 
     # Motores das juntas do braço, iniciando a contagem de baixo (mais longe da mão) para cima (mais prox da mão)
     ur_motors = [
-        robot.getDevice("shoulder_lift_joint"),     # Primeira junta - Rotação Vertical
-        robot.getDevice("elbow_joint"),             # Segunda junta - Rotação Vertical
-        robot.getDevice("wrist_1_joint"),           # Terceira junta - Rotação Vertical
-        robot.getDevice("wrist_2_joint")            # Quarta junta (mão) - Rotação horizontal
+        robot.getDevice("shoulder_lift_joint"),  # Primeira junta - Rotação Vertical
+        robot.getDevice("elbow_joint"),  # Segunda junta - Rotação Vertical
+        robot.getDevice("wrist_1_joint"),  # Terceira junta - Rotação Vertical
+        robot.getDevice("wrist_2_joint")  # Quarta junta (mão) - Rotação horizontal
     ]
     return hand_motors, ur_motors
 

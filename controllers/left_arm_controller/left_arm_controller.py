@@ -303,7 +303,7 @@ def play_notes(robot, timestep, client, hand_motors, ur_motors, distance_sensor,
                 print(status_dict.get(current_status))
                 touch_value = TouchSensor.getValue(touch_sensor)
                 print("Detecting a collision of:", round(touch_value, 2), "N")
-                client.send_message("/osc_signal_receiver/right_arm", touch_value)
+                client.send_message("/osc_signal_receiver/left_arm", touch_value)
                 current_status = 2
 
         elif status_dict.get(current_status) == "up command":
